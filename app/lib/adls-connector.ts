@@ -259,6 +259,7 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
       return {
         case_id: getString(row[0]),
         doc_id: getString(row[1]),
+        validator: getString(row[2]),
         true_bank_name: bankName,
         statement_month: statementMonth,
         statement_year: statementYear,

@@ -2,6 +2,7 @@
 export interface MPRecord {
   case_id: string;
   doc_id: string;
+  validator: string;
   true_bank_name: string;
   statement_month: string;
   statement_year: string;

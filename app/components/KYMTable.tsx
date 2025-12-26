@@ -162,7 +162,6 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                 <th>Sr No.</th>
                 <th>Case ID</th>
                 <th>Doc ID</th>
-                <th>Validator</th>
                 <th>Last 4</th>
                 <th>Monthly Deposit</th>
                 <th>Funding/Transfer</th>
@@ -185,14 +184,6 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                   </td>
                   <td>
                     <span className="font-mono text-[var(--text-muted)] text-[10px]">{row.doc_id}</span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[var(--color-cyan)] to-[var(--color-dark-200)] flex items-center justify-center text-[8px] font-bold text-[var(--color-darkest)]">
-                        {row.validator.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <span className="text-[10px]">{row.validator}</span>
-                    </div>
                   </td>
                   <td>
                     <span className="font-mono px-1.5 py-0.5 bg-[var(--color-dark-500)] rounded text-[var(--text-primary)] text-[10px]">
