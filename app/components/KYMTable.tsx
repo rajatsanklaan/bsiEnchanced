@@ -68,7 +68,7 @@ function MCAModal({ isOpen, onClose, data, caseId, docId }: MCAModalProps) {
             <div key={index} className="info-card">
               <div className="info-card-label">{field.label}</div>
               <div className="info-card-value text-xs text-[var(--text-primary)]">
-                {formatCurrency(field.value)}
+                {(field.value)}
               </div>
             </div>
           ))}
