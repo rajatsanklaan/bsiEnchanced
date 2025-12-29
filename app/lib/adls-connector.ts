@@ -347,7 +347,7 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
         act_last_4_digit: getString(row[3]),
         monthly_deposit: parseCurrency(row[4]),
         funding_transfer_deposits: fundingTransfer === notProvided ? 0 : getNumber(row[5]),
-        avg_daily_balance: avgDailyBalance,
+        avg_daily_balance:  getString(row[6]),
         monthly_number_of_deposits: getNumber(row[7]),
         mca_details: mcaDetails,
       };
