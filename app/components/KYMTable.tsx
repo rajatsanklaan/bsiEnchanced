@@ -164,13 +164,13 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                 <th>Doc ID</th>
                 <th>Last 4</th>
                 <th>Monthly Deposit</th>
-                <th>Funding/Transfer</th>
+                <th>Funding/Transfer Deposits</th>
                 <th>Avg Daily Bal</th>
                 {/* <th># Return</th> */}
                 {/* <th>Ret Days</th> */}
                 {/* <th>OD Days</th> */}
                 <th># Deposits</th>
-                <th>Funding Transfer Deposit ($)</th>
+                <th>Funding/Transfer Deposits ($)</th>
                 <th>MCA OD And others</th>
               </tr>
             </thead>
@@ -198,7 +198,7 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                     <span className="text-[var(--text-primary)]">{(row.funding_transfer_deposits)}</span>
                   </td>
                   <td>
-                    <span className="text-[var(--text-primary)]">{(row.avg_daily_balance)}</span>
+                    <span className="text-[var(--text-primary)]">{formatCurrency(row.avg_daily_balance)}</span>
                   </td>
                   {/* <td>
                     <span className="num-badge text-[var(--text-primary)]">
