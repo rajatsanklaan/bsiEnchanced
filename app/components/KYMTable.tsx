@@ -170,6 +170,7 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                 {/* <th>Ret Days</th> */}
                 {/* <th>OD Days</th> */}
                 <th># Deposits</th>
+                <th>Funding Transfer Deposit ($)</th>
                 <th>MCA OD And others</th>
               </tr>
             </thead>
@@ -218,6 +219,9 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                     <span className="num-badge text-[var(--text-primary)]">
                       {row.monthly_number_of_deposits}
                     </span>
+                  </td>
+                  <td>
+                    <span className="text-[var(--text-primary)]">{formatCurrency(row.funding_transfer_deposit_amount)}</span>
                   </td>
                   <td>
                     <button

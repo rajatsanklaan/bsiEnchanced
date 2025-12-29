@@ -42,6 +42,7 @@ export interface KYMRecord {
   funding_transfer_deposits: number;
   avg_daily_balance: string | number;
   monthly_number_of_deposits: number;
+  funding_transfer_deposit_amount: number; // Funding Transfer Deposit ($) from column 21
   mca_details: MCADetails;
 }
 

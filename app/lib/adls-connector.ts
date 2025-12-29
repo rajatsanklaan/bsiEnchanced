@@ -218,40 +218,45 @@ function extractMonthYearFromPeriod(period: string): { month: string; year: stri
  * 
  * Salesforce BSI Data:
  * 0: case_id (e.g., "Case1", "Case2")
- * 1: doc_id (Name - file name)
- * 2: validator
- * 3: act_last_4_digit
- * 4: monthly_deposit
- * 5: funding_transfer_deposits
- * 6: avg_daily_balance ("Not Provided by Merchant Pulse")
- * 7: monthly_number_of_deposits
+ * 1: Name/doc_id (filename - e.g., "083125 WellsFargo.pdf.pdf")
+ * 2: Validator (e.g., "Ankoor Kumar")
+ * 3: Column2 (empty/unused)
+ * 4: Acct # Last 4 (e.g., "9490")
+ * 5: Monthly Deposits ($) (e.g., "13,539.02")
+ * 6: Funding/Transfer Deposits (e.g., "0")
+ * 7: Avg Daily Balance (e.g., "4121.7")
+ * 8: Monthly Number of Deposits (e.g., "14")
  * 
- * Merchant Pulse Outputs:
- * 8: true_bank_name
- * 9: statement_month
- * 10: statement_year
- * 11: account_holder
- * 12: predicted_bank_name
- * 13: statement_period
- * 14: account_number
- * 15: total_monthly_deposit
- * 16: total_monthly_withdrawals
- * 17: number_of_deposits
- * 18: number_of_withdrawals
+ * Merchant Pulse Outputs (shifted +1 from BSI section):
+ * 9: (empty/section separator)
+ * 10: True Bank Name (e.g., "WELLS FARGO")
+ * 11: Statement Month (e.g., "august")
+ * 12: Statement Year (e.g., "2025")
+ * 13: Account Holder (e.g., "MYTHIC GYMNASTICS L.L.C.")
+ * 14: Predicted Bank Name (e.g., "Wells Fargo")
+ * 15: Statement Period (e.g., "01/08/2025 - 31/08/2025")
+ * 16: Account Number (e.g., "****9490")
+ * 17: Total Monthly Deposits ($) (e.g., "$13,539.02")
+ * 18: Total Monthly Withdrawals ($) (e.g., "$13,332.67")
+ * 19: Number of Deposits (e.g., "14")
+ * 20: Number of Withdrawals (e.g., "22")
  * 
- * MCA Details (12 columns):
- * 19: mca_deposit
- * 20: mca_withdrawal
- * 21: returned_items
- * 22: overdrafts
- * 23: service_charges
- * 24: atm_cash_withdrawal
- * 25: internal_transfer_deposit
- * 26: other_transfer_deposit
- * 27: internal_transfer_withdrawal
- * 28: other_transfer_withdrawal
- * 29: standard_deposit
- * 30: standard_withdrawal
+ * Additional Fields:
+ * 21: Funding Transfer Deposit ($) (e.g., "0")
+ * 
+ * MCA Details (12 columns starting at 22):
+ * 22: MCA Deposit
+ * 23: MCA Withdrawal
+ * 24: Returned Items
+ * 25: Overdrafts
+ * 26: Service Charges
+ * 27: ATM Cash Withdrawal
+ * 28: Internal Transfer Deposit
+ * 29: Other Transfer Deposit
+ * 30: Internal Transfer Withdrawal
+ * 31: Other Transfer Withdrawal
+ * 32: Standard Deposit
+ * 33: Standard Withdrawal
  */
 
 // Parse Excel data and extract MP records
@@ -266,13 +271,20 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
   return dataRows
     .filter((row) => row && row.length > 0 && row[0])
     .map((row) => {
-      const statementPeriod = getString(row[13]);
-      const trueBankName = getString(row[8]);
-      const predictedBankName = getString(row[12]);
+      // Column mapping (0-indexed):
+      // 0: case_id, 1: doc_id, 2: validator, 3: (empty), 4: last4, 5: monthly_deposit
+      // 6: funding/transfer, 7: avg_daily_balance, 8: # deposits, 9: (empty/separator)
+      // 10: true_bank_name, 11: month, 12: year, 13: account_holder, 14: predicted_bank
+      // 15: statement_period, 16: account_number, 17: total_deposit, 18: total_withdrawal
+      // 19: # deposits, 20: # withdrawals
+      
+      const statementPeriod = getString(row[15]);
+      const trueBankName = getString(row[10]);
+      const predictedBankName = getString(row[14]);
       
       // Get statement month and year, with fallback to extracting from statement_period
-      let statementMonth = excelDateToString(row[9]);
-      let statementYear = excelDateToYear(row[10]);
+      let statementMonth = excelDateToString(row[11]);
+      let statementYear = excelDateToYear(row[12]);
       
       // If month/year columns are empty or contain date serials, try extracting from period
       if (!statementMonth || !statementYear) {
@@ -291,14 +303,14 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
         true_bank_name: bankName,
         statement_month: statementMonth,
         statement_year: statementYear,
-        account_holder: getString(row[11]),
+        account_holder: getString(row[13]),
         predicted_bank_name: predictedBankName || bankName,
         statement_period: statementPeriod,
-        account_number: getString(row[14]),
-        total_monthly_deposit: parseCurrency(row[15]),
-        total_monthly_withdrawals: parseCurrency(row[16]),
-        number_of_deposits: getNumber(row[17]),
-        number_of_withdrawals: getNumber(row[18]),
+        account_number: getString(row[16]),
+        total_monthly_deposit: parseCurrency(row[17]),
+        total_monthly_withdrawals: parseCurrency(row[18]),
+        number_of_deposits: getNumber(row[19]),
+        number_of_withdrawals: getNumber(row[20]),
       };
     });
 }
@@ -315,50 +327,45 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
   return dataRows
     .filter((row) => row && row.length > 0 && row[0])
     .map((row) => {
-      // MCA details start at column 19
+      // Column mapping (0-indexed):
+      // 0: case_id, 1: doc_id, 2: validator, 3: (empty Column2), 4: (empty)
+      // 5: last4, 6: monthly_deposit, 7: funding/transfer, 8: avg_daily_balance, 9: # deposits
+      // MCA details: 22-33 (column 21 is Funding Transfer Deposit $)
+      
+      // MCA details start at column 22
       const mcaDetails: MCADetails = {
-        mca_deposit: getNumber(row[19]),
-        mca_withdrawals: getNumber(row[20]),
-        returned_item: getNumber(row[21]),
-        overdrafts: getNumber(row[22]),
-        service_charges: getNumber(row[23]),
-        atm_cash_withdrawal: getNumber(row[24]),
-        internal_transfer_deposit: getNumber(row[25]),
-        other_transfer_deposit: getNumber(row[26]),
-        internal_transfer_withdrawal: getNumber(row[27]),
-        other_transfer_withdrawal: getNumber(row[28]),
-        standard_deposit: getNumber(row[29]),
-        standard_withdrawal: getNumber(row[30]),
+        mca_deposit: getNumber(row[22]),
+        mca_withdrawals: getNumber(row[23]),
+        returned_item: getNumber(row[24]),
+        overdrafts: getNumber(row[25]),
+        service_charges: getNumber(row[26]),
+        atm_cash_withdrawal: getNumber(row[27]),
+        internal_transfer_deposit: getNumber(row[28]),
+        internal_transfer_withdrawal: getNumber(row[30]),
+        other_transfer_deposit: getNumber(row[29]),
+        other_transfer_withdrawal: getNumber(row[31]),
+        standard_deposit: getNumber(row[32]),
+        standard_withdrawal: getNumber(row[33]),
       };
 
-      // Check if "Not Provided" values are present
-      const notProvided = 'Not Provided by Merchant Pulse';
-      const fundingTransfer = getString(row[5]);
-      const avgBalance = getString(row[6]);
-
-      // For avg_daily_balance, try to parse as number first
-      // Check if it's a number directly, or parse from string
-      let avgDailyBalance = 0;
-      if (typeof row[6] === 'number') {
-        avgDailyBalance = row[6];
-      } else if (typeof row[6] === 'string') {
-        const balanceStr = row[6].trim();
-        if (balanceStr && balanceStr !== notProvided) {
-          // Try parsing as currency/number
-          const parsed = parseCurrency(row[6]);
-          avgDailyBalance = parsed;
-        }
+      // Get avg_daily_balance - try to parse as number
+      let avgDailyBalanceStr = '';
+      if (typeof row[8] === 'number') {
+        avgDailyBalanceStr = row[8].toString();
+      } else if (typeof row[8] === 'string') {
+        avgDailyBalanceStr = row[8].trim();
       }
 
       return {
         case_id: getString(row[0]),
         doc_id: getString(row[1]),
         validator: getString(row[2]),
-        act_last_4_digit: getString(row[3]),
-        monthly_deposit: parseCurrency(row[4]),
-        funding_transfer_deposits: fundingTransfer === notProvided ? 0 : getNumber(row[5]),
-        avg_daily_balance:  getString(row[6]),
-        monthly_number_of_deposits: getNumber(row[7]),
+        act_last_4_digit: getString(row[5]),
+        monthly_deposit: parseCurrency(row[6]),
+        funding_transfer_deposits: getNumber(row[7]),
+        avg_daily_balance: avgDailyBalanceStr,
+        monthly_number_of_deposits: getNumber(row[9]),
+        funding_transfer_deposit_amount: parseCurrency(row[21]), // Funding Transfer Deposit ($)
         mca_details: mcaDetails,
       };
     });
