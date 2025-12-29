@@ -40,7 +40,7 @@ export interface KYMRecord {
   act_last_4_digit: string;
   monthly_deposit: number;
   funding_transfer_deposits: number;
-  avg_daily_balance: number;
+  avg_daily_balance: string | number;
   monthly_number_of_deposits: number;
   mca_details: MCADetails;
 }
