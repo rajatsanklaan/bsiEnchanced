@@ -103,7 +103,7 @@ function excelDateToString(value: unknown): string {
   return '';
 }
 
-// Extract year from Excel serial date
+// Extract year from Excel serial date or direct year number
 function excelDateToYear(value: unknown): string {
   if (typeof value === 'string') {
     // Check if it's already a year
@@ -123,10 +123,20 @@ function excelDateToYear(value: unknown): string {
     return value.trim();
   }
   if (typeof value === 'number') {
+    // Check if the number is already a year (e.g., 2020-2099)
+    // Years in this range are clearly not Excel serial dates
+    if (value >= 1900 && value <= 2100) {
+      return Math.floor(value).toString();
+    }
     // Excel serial date - convert to year
-    const excelEpoch = new Date(1899, 11, 30);
-    const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
-    return date.getFullYear().toString();
+    // Serial dates for recent years are typically > 40000 (year 2000+)
+    if (value > 30000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
+      return date.getFullYear().toString();
+    }
+    // For small numbers that don't look like years or valid serial dates, return as-is
+    return Math.floor(value).toString();
   }
   return '';
 }
