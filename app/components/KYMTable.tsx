@@ -198,7 +198,7 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                     <span className="text-[var(--text-primary)]">{(row.funding_transfer_deposits)}</span>
                   </td>
                   <td>
-                    <span className="text-[var(--text-primary)]">{formatCurrency(row.avg_daily_balance)}</span>
+                    <span className="text-[var(--text-primary)]">{formatCurrency(typeof row.avg_daily_balance === 'number' ? row.avg_daily_balance : Number(row.avg_daily_balance) || 0)}</span>
                   </td>
                   {/* <td>
                     <span className="num-badge text-[var(--text-primary)]">
