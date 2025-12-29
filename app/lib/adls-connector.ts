@@ -204,26 +204,44 @@ function extractMonthYearFromPeriod(period: string): { month: string; year: stri
 }
 
 /**
- * Column mapping based on actual ADLS data structure:
+ * Column mapping based on actual ADLS spreadsheet structure:
+ * 
+ * Salesforce BSI Data:
  * 0: case_id (e.g., "Case1", "Case2")
- * 1: doc_id (file name)
+ * 1: doc_id (Name - file name)
  * 2: validator
  * 3: act_last_4_digit
  * 4: monthly_deposit
- * 5-9: "Not Provided by Merchant Pulse" columns
- * 10: monthly_number_of_deposits (BSI extracted)
- * 11: true_bank_name
- * 12: statement_month
- * 13: statement_year
- * 14: account_holder
- * 15: predicted_bank_name
- * 16: statement_period
- * 17: account_number
- * 18: total_monthly_deposit
- * 19: total_monthly_withdrawals
- * 20: number_of_deposits
- * 21: number_of_withdrawals
- * 22-33: MCA details (12 columns)
+ * 5: funding_transfer_deposits
+ * 6: avg_daily_balance ("Not Provided by Merchant Pulse")
+ * 7: monthly_number_of_deposits
+ * 
+ * Merchant Pulse Outputs:
+ * 8: true_bank_name
+ * 9: statement_month
+ * 10: statement_year
+ * 11: account_holder
+ * 12: predicted_bank_name
+ * 13: statement_period
+ * 14: account_number
+ * 15: total_monthly_deposit
+ * 16: total_monthly_withdrawals
+ * 17: number_of_deposits
+ * 18: number_of_withdrawals
+ * 
+ * MCA Details (12 columns):
+ * 19: mca_deposit
+ * 20: mca_withdrawal
+ * 21: returned_items
+ * 22: overdrafts
+ * 23: service_charges
+ * 24: atm_cash_withdrawal
+ * 25: internal_transfer_deposit
+ * 26: other_transfer_deposit
+ * 27: internal_transfer_withdrawal
+ * 28: other_transfer_withdrawal
+ * 29: standard_deposit
+ * 30: standard_withdrawal
  */
 
 // Parse Excel data and extract MP records
@@ -238,13 +256,13 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
   return dataRows
     .filter((row) => row && row.length > 0 && row[0])
     .map((row) => {
-      const statementPeriod = getString(row[16]);
-      const trueBankName = getString(row[11]);
-      const predictedBankName = getString(row[15]);
+      const statementPeriod = getString(row[13]);
+      const trueBankName = getString(row[8]);
+      const predictedBankName = getString(row[12]);
       
       // Get statement month and year, with fallback to extracting from statement_period
-      let statementMonth = excelDateToString(row[12]);
-      let statementYear = excelDateToYear(row[13]);
+      let statementMonth = excelDateToString(row[9]);
+      let statementYear = excelDateToYear(row[10]);
       
       // If month/year columns are empty or contain date serials, try extracting from period
       if (!statementMonth || !statementYear) {
@@ -263,14 +281,14 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
         true_bank_name: bankName,
         statement_month: statementMonth,
         statement_year: statementYear,
-        account_holder: getString(row[14]),
+        account_holder: getString(row[11]),
         predicted_bank_name: predictedBankName || bankName,
         statement_period: statementPeriod,
-        account_number: getString(row[17]),
-        total_monthly_deposit: parseCurrency(row[18]),
-        total_monthly_withdrawals: parseCurrency(row[19]),
-        number_of_deposits: getNumber(row[20]),
-        number_of_withdrawals: getNumber(row[21]),
+        account_number: getString(row[14]),
+        total_monthly_deposit: parseCurrency(row[15]),
+        total_monthly_withdrawals: parseCurrency(row[16]),
+        number_of_deposits: getNumber(row[17]),
+        number_of_withdrawals: getNumber(row[18]),
       };
     });
 }
@@ -287,29 +305,40 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
   return dataRows
     .filter((row) => row && row.length > 0 && row[0])
     .map((row) => {
-      // MCA details start at column 22
+      // MCA details start at column 19
       const mcaDetails: MCADetails = {
-        mca_deposit: getNumber(row[22]),
-        mca_withdrawals: getNumber(row[23]),
-        returned_item: getNumber(row[24]),
-        overdrafts: getNumber(row[25]),
-        service_charges: getNumber(row[26]),
-        atm_cash_withdrawal: getNumber(row[27]),
-        internal_transfer_deposit: getNumber(row[28]),
-        internal_transfer_withdrawal: getNumber(row[29]),
-        other_transfer_deposit: getNumber(row[30]),
-        other_transfer_withdrawal: getNumber(row[31]),
-        standard_deposit: getNumber(row[32]),
-        standard_withdrawal: getNumber(row[33]),
+        mca_deposit: getNumber(row[19]),
+        mca_withdrawals: getNumber(row[20]),
+        returned_item: getNumber(row[21]),
+        overdrafts: getNumber(row[22]),
+        service_charges: getNumber(row[23]),
+        atm_cash_withdrawal: getNumber(row[24]),
+        internal_transfer_deposit: getNumber(row[25]),
+        other_transfer_deposit: getNumber(row[26]),
+        internal_transfer_withdrawal: getNumber(row[27]),
+        other_transfer_withdrawal: getNumber(row[28]),
+        standard_deposit: getNumber(row[29]),
+        standard_withdrawal: getNumber(row[30]),
       };
 
       // Check if "Not Provided" values are present
       const notProvided = 'Not Provided by Merchant Pulse';
       const fundingTransfer = getString(row[5]);
       const avgBalance = getString(row[6]);
-      const returnItems = getString(row[7]);
-      const returnDays = getString(row[8]);
-      const odDays = getString(row[9]);
+
+      // For avg_daily_balance, try to parse as number first
+      // Check if it's a number directly, or parse from string
+      let avgDailyBalance = 0;
+      if (typeof row[6] === 'number') {
+        avgDailyBalance = row[6];
+      } else if (typeof row[6] === 'string') {
+        const balanceStr = row[6].trim();
+        if (balanceStr && balanceStr !== notProvided) {
+          // Try parsing as currency/number
+          const parsed = parseCurrency(row[6]);
+          avgDailyBalance = parsed;
+        }
+      }
 
       return {
         case_id: getString(row[0]),
@@ -317,12 +346,9 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
         validator: getString(row[2]),
         act_last_4_digit: getString(row[3]),
         monthly_deposit: parseCurrency(row[4]),
-        funding_transfer_deposits: fundingTransfer === notProvided ? 0 : parseCurrency(row[5]),
-        avg_daily_balance: avgBalance === notProvided ? 0 : parseCurrency(row[6]),
-        return_items: returnItems === notProvided ? 0 : getNumber(row[7]),
-        return_item_days: returnDays === notProvided ? 0 : getNumber(row[8]),
-        overdraft_days: odDays === notProvided ? 0 : getNumber(row[9]),
-        monthly_number_of_deposits: getNumber(row[10]),
+        funding_transfer_deposits: fundingTransfer === notProvided ? 0 : getNumber(row[5]),
+        avg_daily_balance: avgDailyBalance,
+        monthly_number_of_deposits: getNumber(row[7]),
         mca_details: mcaDetails,
       };
     });

@@ -41,9 +41,6 @@ export interface KYMRecord {
   monthly_deposit: number;
   funding_transfer_deposits: number;
   avg_daily_balance: number;
-  return_items: number;
-  return_item_days: number;
-  overdraft_days: number;
   monthly_number_of_deposits: number;
   mca_details: MCADetails;
 }
