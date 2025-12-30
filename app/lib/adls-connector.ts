@@ -291,6 +291,10 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
       // 15: statement_period, 16: account_number, 17: total_deposit, 18: total_withdrawal
       // 19: # deposits, 20: # withdrawals
       
+      // Get doc_id and generate PDF URL from ADLS
+      const docId = getString(row[1]);
+      const docLink = getPdfUrlFromADLS(docId);
+      
       const statementPeriod = getString(row[15]);
       const trueBankName = getString(row[10]);
       const predictedBankName = getString(row[14]);
@@ -311,7 +315,8 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
       
       return {
         case_id: getString(row[0]),
-        doc_id: getString(row[1]),
+        doc_id: docId,
+        doc_link: docLink,
         validator: getString(row[2]),
         true_bank_name: bankName,
         statement_month: statementMonth,
