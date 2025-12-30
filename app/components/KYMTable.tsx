@@ -162,6 +162,7 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                 <th>Sr No.</th>
                 <th>Case ID</th>
                 <th>Doc ID</th>
+                <th>Document</th>
                 <th>Last 4</th>
                 <th>Monthly Deposit</th>
                 <th>Funding/Transfer Deposits</th>
@@ -185,6 +186,21 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                   </td>
                   <td>
                     <span className="font-mono text-[var(--text-muted)] text-[10px]">{row.doc_id}</span>
+                  </td>
+                  <td>
+                    {row.doc_link ? (
+                      <button
+                        onClick={() => window.open(row.doc_link, '_blank', 'noopener,noreferrer')}
+                        className="btn-view"
+                        title="View Document"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <span className="text-[var(--text-muted)] text-[10px]">—</span>
+                    )}
                   </td>
                   <td>
                     <span className="font-mono px-1.5 py-0.5 bg-[var(--color-dark-500)] rounded text-[var(--text-primary)] text-[10px]">

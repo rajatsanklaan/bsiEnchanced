@@ -36,6 +36,7 @@ export interface MCADetails {
 export interface KYMRecord {
   case_id: string;
   doc_id: string;
+  doc_link: string; // Hyperlink URL from doc_id cell
   validator: string;
   act_last_4_digit: string;
   monthly_deposit: number;
