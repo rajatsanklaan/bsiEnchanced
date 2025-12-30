@@ -388,6 +388,7 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
         avg_daily_balance: avgDailyBalanceStr,
         monthly_number_of_deposits: getNumber(row[9]),
         funding_transfer_deposit_amount: parseCurrency(row[21]), // Funding Transfer Deposit ($)
+        return_item_days: getNumber(row[22]), // Return Item Days
         mca_details: mcaDetails,
       };
     });

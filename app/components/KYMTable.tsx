@@ -172,6 +172,7 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                 {/* <th>OD Days</th> */}
                 <th># Deposits</th>
                 <th>Funding/Transfer Deposits ($)</th>
+                <th>Return Item Days</th>
                 <th>MCA OD And others</th>
               </tr>
             </thead>
@@ -238,6 +239,11 @@ export default function KYMTable({ data = [], loading = false, error = null }: K
                   </td>
                   <td>
                     <span className="text-[var(--text-primary)]">{formatCurrency(row.funding_transfer_deposit_amount)}</span>
+                  </td>
+                  <td>
+                    <span className="num-badge text-[var(--text-primary)]">
+                      {row.return_item_days}
+                    </span>
                   </td>
                   <td>
                     <button
