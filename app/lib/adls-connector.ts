@@ -18,6 +18,19 @@ const getADLSConfig = () => {
   return { accountName, sasToken, containerName, fileName };
 };
 
+// Generate PDF URL from ADLS for a given doc_id
+// PDFs are stored at: bronze/pdfs/{doc_id}
+export function getPdfUrlFromADLS(docId: string): string {
+  if (!docId) return '';
+  
+  const { accountName, sasToken, containerName } = getADLSConfig();
+  const sasTokenFormatted = sasToken.startsWith('?') ? sasToken : `?${sasToken}`;
+  
+  // Construct the PDF blob URL: bronze/pdfs/{doc_id}
+  const pdfPath = `pdfs/${docId}`;
+  return `https://${accountName}.blob.core.windows.net/${containerName}/${pdfPath}${sasTokenFormatted}`;
+}
+
 // Create ADLS client using SAS token
 const createBlobServiceClient = () => {
   const { accountName, sasToken } = getADLSConfig();
@@ -315,41 +328,21 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
     });
 }
 
-// Helper to get cell address from row and column index
-function getCellAddress(row: number, col: number): string {
-  let colStr = '';
-  let c = col;
-  while (c >= 0) {
-    colStr = String.fromCharCode((c % 26) + 65) + colStr;
-    c = Math.floor(c / 26) - 1;
-  }
-  return colStr + (row + 1);
-}
-
 // Parse Excel data and extract KYM records
 function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
   
   if (jsonData.length < 2) return [];
   
-  // Skip header row and map with original indices first
+  // Skip header row
   const dataRows = jsonData.slice(1);
   
-  // First, create array with original row indices (before filtering)
-  const rowsWithIndices = dataRows.map((row, originalIndex) => ({ row, originalIndex }));
-  
-  return rowsWithIndices
-    .filter(({ row }) => row && row.length > 0 && row[0])
-    .map(({ row, originalIndex }) => {
-      // Get hyperlink from doc_id cell (column B, index 1)
-      // originalIndex is 0-based from dataRows (which starts after header)
-      // So Excel row = originalIndex + 2 (1 for header, 1 for 0-to-1-based conversion)
-      const cellAddress = getCellAddress(originalIndex + 1, 1); // Column B (index 1)
-      const cell = worksheet[cellAddress];
-      let docLink = '';
-      if (cell && cell.l && cell.l.Target) {
-        docLink = cell.l.Target;
-      }
+  return dataRows
+    .filter((row) => row && row.length > 0 && row[0])
+    .map((row) => {
+      // Get doc_id and generate PDF URL from ADLS
+      const docId = getString(row[1]);
+      const docLink = getPdfUrlFromADLS(docId);
       // Column mapping (0-indexed):
       // 0: case_id, 1: doc_id, 2: validator, 3: (empty Column2), 4: (empty)
       // 5: last4, 6: monthly_deposit, 7: funding/transfer, 8: avg_daily_balance, 9: # deposits
