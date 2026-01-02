@@ -1,13 +1,16 @@
 import { BlobServiceClient } from '@azure/storage-blob';
 import * as XLSX from 'xlsx';
 import type { MPRecord, KYMRecord, MCADetails } from '../types';
+import { getPdfPathPrefixForBatch } from './batch-config';
 
 // ADLS Configuration from environment variables
-const getADLSConfig = () => {
+const getADLSConfig = (sheetNameOverride?: string) => {
   const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
   const sasToken = process.env.AZURE_STORAGE_SAS_TOKEN;
   const containerName = process.env.AZURE_CONTAINER_NAME || 'bronze';
   const fileName = process.env.AZURE_FILE_NAME || 'underscore.xlsx';
+  // Use provided sheetName or fallback to environment variable
+  const sheetName = sheetNameOverride || process.env.AZURE_SHEET_NAME; 
 
   if (!accountName || !sasToken) {
     throw new Error(
@@ -15,19 +18,19 @@ const getADLSConfig = () => {
     );
   }
 
-  return { accountName, sasToken, containerName, fileName };
+  return { accountName, sasToken, containerName, fileName, sheetName };
 };
 
 // Generate PDF URL from ADLS for a given doc_id
-// PDFs are stored at: bronze/pdfs/{doc_id}
-export function getPdfUrlFromADLS(docId: string): string {
+// PDFs are stored at: {containerName}/{pdfPathPrefix}/{doc_id}
+export function getPdfUrlFromADLS(docId: string, pdfPathPrefix: string = '29_batch'): string {
   if (!docId) return '';
   
   const { accountName, sasToken, containerName } = getADLSConfig();
   const sasTokenFormatted = sasToken.startsWith('?') ? sasToken : `?${sasToken}`;
   
-  // Construct the PDF blob URL: bronze/pdfs/{doc_id}
-  const pdfPath = `pdfs/${docId}`;
+  // Construct the PDF blob URL: {containerName}/{pdfPathPrefix}/{doc_id}
+  const pdfPath = `${pdfPathPrefix}/${docId}`;
   return `https://${accountName}.blob.core.windows.net/${containerName}/${pdfPath}${sasTokenFormatted}`;
 }
 
@@ -273,7 +276,7 @@ function extractMonthYearFromPeriod(period: string): { month: string; year: stri
  */
 
 // Parse Excel data and extract MP records
-function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
+function parseMPData(worksheet: XLSX.WorkSheet, pdfPathPrefix: string = '29_batch'): MPRecord[] {
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
   
   if (jsonData.length < 2) return [];
@@ -291,9 +294,9 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
       // 15: statement_period, 16: account_number, 17: total_deposit, 18: total_withdrawal
       // 19: # deposits, 20: # withdrawals
       
-      // Get doc_id and generate PDF URL from ADLS
+      // Get doc_id and generate PDF URL from ADLS with batch-specific path prefix
       const docId = getString(row[1]);
-      const docLink = getPdfUrlFromADLS(docId);
+      const docLink = getPdfUrlFromADLS(docId, pdfPathPrefix);
       
       const statementPeriod = getString(row[15]);
       const trueBankName = getString(row[10]);
@@ -334,7 +337,7 @@ function parseMPData(worksheet: XLSX.WorkSheet): MPRecord[] {
 }
 
 // Parse Excel data and extract KYM records
-function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
+function parseKYMData(worksheet: XLSX.WorkSheet, pdfPathPrefix: string = '29_batch'): KYMRecord[] {
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
   
   if (jsonData.length < 2) return [];
@@ -345,9 +348,9 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
   return dataRows
     .filter((row) => row && row.length > 0 && row[0])
     .map((row) => {
-      // Get doc_id and generate PDF URL from ADLS
+      // Get doc_id and generate PDF URL from ADLS with batch-specific path prefix
       const docId = getString(row[1]);
-      const docLink = getPdfUrlFromADLS(docId);
+      const docLink = getPdfUrlFromADLS(docId, pdfPathPrefix);
       // Column mapping (0-indexed):
       // 0: case_id, 1: doc_id, 2: validator, 3: (empty Column2), 4: (empty)
       // 5: last4, 6: monthly_deposit, 7: funding/transfer, 8: avg_daily_balance, 9: # deposits
@@ -395,7 +398,7 @@ function parseKYMData(worksheet: XLSX.WorkSheet): KYMRecord[] {
 }
 
 // Main function to fetch and parse data from ADLS
-export async function fetchDataFromADLS(): Promise<{
+export async function fetchDataFromADLS(sheetName?: string, batchName?: string): Promise<{
   mpData: MPRecord[];
   kymData: KYMRecord[];
 }> {
@@ -413,13 +416,35 @@ export async function fetchDataFromADLS(): Promise<{
     let mpData: MPRecord[] = [];
     let kymData: KYMRecord[] = [];
     
-    // Use the first sheet for both MP and KYM data
-    const mainSheet = workbook.Sheets[sheetNames[0]];
+    // Get the sheet name from parameter or config, or use first sheet as fallback
+    const { sheetName: configSheetName } = getADLSConfig(sheetName);
+    const targetSheetName = sheetName || configSheetName || sheetNames[0];
     
-    if (mainSheet) {
-      mpData = parseMPData(mainSheet);
-      kymData = parseKYMData(mainSheet);
-      console.log(`Parsed ${mpData.length} MP records and ${kymData.length} KYM records`);
+    // Get PDF path prefix for the batch (default to '29_batch' if batch not provided)
+    const pdfPathPrefix = batchName 
+      ? (getPdfPathPrefixForBatch(batchName) || '29_batch')
+      : '29_batch';
+    
+    console.log(`Using PDF path prefix: "${pdfPathPrefix}" for batch: "${batchName || 'default'}"`);
+    
+    // Check if the specified sheet exists
+    if (!workbook.Sheets[targetSheetName]) {
+      console.warn(`Sheet "${targetSheetName}" not found. Available sheets: ${sheetNames.join(', ')}. Using first sheet.`);
+      const mainSheet = workbook.Sheets[sheetNames[0]];
+      if (mainSheet) {
+        mpData = parseMPData(mainSheet, pdfPathPrefix);
+        kymData = parseKYMData(mainSheet, pdfPathPrefix);
+        console.log(`Parsed ${mpData.length} MP records and ${kymData.length} KYM records from fallback sheet`);
+      }
+    } else {
+      const mainSheet = workbook.Sheets[targetSheetName];
+      console.log(`Using sheet: "${targetSheetName}"`);
+      
+      if (mainSheet) {
+        mpData = parseMPData(mainSheet, pdfPathPrefix);
+        kymData = parseKYMData(mainSheet, pdfPathPrefix);
+        console.log(`Parsed ${mpData.length} MP records and ${kymData.length} KYM records`);
+      }
     }
     
     return { mpData, kymData };
