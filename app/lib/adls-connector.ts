@@ -358,18 +358,18 @@ function parseKYMData(worksheet: XLSX.WorkSheet, pdfPathPrefix: string = '29_bat
       
       // MCA details start at column 22
       const mcaDetails: MCADetails = {
-        mca_deposit: getNumber(row[22]),
-        mca_withdrawals: getNumber(row[23]),
-        returned_item: getNumber(row[24]),
-        overdrafts: getNumber(row[25]),
-        service_charges: getNumber(row[26]),
-        atm_cash_withdrawal: getNumber(row[27]),
-        internal_transfer_deposit: getNumber(row[28]),
-        internal_transfer_withdrawal: getNumber(row[30]),
-        other_transfer_deposit: getNumber(row[29]),
-        other_transfer_withdrawal: getNumber(row[31]),
-        standard_deposit: getNumber(row[32]),
-        standard_withdrawal: getNumber(row[33]),
+        mca_deposit: getNumber(row[23]),
+        mca_withdrawals: getNumber(row[24]),
+        returned_item: getNumber(row[25]),
+        overdrafts: getNumber(row[26]),
+        service_charges: getNumber(row[27]),
+        atm_cash_withdrawal: getNumber(row[28]),
+        internal_transfer_deposit: getNumber(row[29]),
+        internal_transfer_withdrawal: getNumber(row[31]),
+        other_transfer_deposit: getNumber(row[30]),
+        other_transfer_withdrawal: getNumber(row[32]),
+        standard_deposit: getNumber(row[33]),
+        standard_withdrawal: getNumber(row[34]),
       };
 
       // Get avg_daily_balance - try to parse as number
