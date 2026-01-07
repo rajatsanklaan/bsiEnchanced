@@ -362,6 +362,7 @@ function parseKYMData(worksheet: XLSX.WorkSheet, pdfPathPrefix: string = '29_bat
         mca_withdrawals: getNumber(row[24]),
         returned_item: getNumber(row[25]),
         overdrafts: getNumber(row[26]),
+        overdrafts_days: getNumber(row[35]),
         service_charges: getNumber(row[27]),
         atm_cash_withdrawal: getNumber(row[28]),
         internal_transfer_deposit: getNumber(row[29]),

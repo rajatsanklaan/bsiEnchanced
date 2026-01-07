@@ -27,6 +27,7 @@ function MCAModal({ isOpen, onClose, data, caseId, docId }: MCAModalProps) {
     { label: 'MCA Withdrawals', value: data.mca_withdrawals, type: 'negative' },
     { label: 'Returned Item', value: data.returned_item, type: 'warning' },
     { label: 'Overdrafts', value: data.overdrafts, type: 'danger' },
+    { label: 'Overdrafts Days', value: data.overdrafts_days },
     { label: 'Service Charges', value: data.service_charges, type: 'neutral' },
     { label: 'ATM Cash Withdrawal', value: data.atm_cash_withdrawal, type: 'negative' },
     { label: 'Internal Transfer Dep', value: data.internal_transfer_deposit, type: 'positive' },

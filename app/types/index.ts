@@ -23,6 +23,7 @@ export interface MCADetails {
   mca_withdrawals: number;
   returned_item: number;
   overdrafts: number;
+  overdrafts_days: number;
   service_charges: number;
   atm_cash_withdrawal: number;
   internal_transfer_deposit: number;
